@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QThread>
 #include <QSettings>
+#include "configdialog.h"
 #include "qcustomplot.h"
 #include "coordinatesgenerator.h"
 
@@ -35,20 +36,19 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QThread thread;
-    CoordinatesGenerator *generator = nullptr;  // Генерирует значение для обеих осей, получается случайно запутанный график
+    ConfigDialog* dialog_ = nullptr;
+    QThread thread_;
 
-    uint generateInterval_;                     // Временой интервал генерирования координат
-    bool visibleLines_;                          // Видимые линии
-    QColor color_;                               // Цвет графика
+    CoordinatesGenerator *generator_ = nullptr;  // Генерирует значение для обеих осей, получается случайно запутанный график
+    Config graph_;
 
     void createGraph();                         // Инициализация графика
     void createGenerator();                     // Инициализация генератора координат
-    void saveWinGeometry();                     // Сохранение геометрии окна
+    void addGraphData(double x, double y);       // Отрисовка занчений на графике
+    void repaintGraph(const Config &config);
+    void setButtonsActions();
     void save();                                // Сохранение параметров графика
     void load();                                // Загрузка параметров
-    void updateGraph(double x, double y);       // Отрисовка занчений на графике
-    void setButtonsActions();
 
 private slots:
     void handleResult(int x, int y);                     // Прием координат

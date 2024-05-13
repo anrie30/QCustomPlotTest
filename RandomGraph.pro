@@ -9,17 +9,20 @@ OBJECTS_DIR = ./obj
 MOC_DIR = ./obj
 
 SOURCES += \
+    configdialog.cpp \
     coordinatesgenerator.cpp \
     main.cpp \
     mainwindow.cpp \
     qcustomplot.cpp
 
 HEADERS += \
+    configdialog.h \
     coordinatesgenerator.h \
     mainwindow.h \
     qcustomplot.h
 
 FORMS += \
+    configdialog.ui \
     mainwindow.ui
 
 # Default rules for deployment.
