@@ -7,10 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-//    qRegisterMetaType<Config>("Config");
-
     setButtonsActions();
-
     load();
 
     ui->customPlot->addGraph();
@@ -29,13 +26,6 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::onButtonStart()
-{
-    createGenerator();
-    emit startGeneration();
-}
-
-
 void MainWindow::createGenerator()
 {
     qInfo() << "Создание генератора координат";
@@ -49,23 +39,24 @@ void MainWindow::createGenerator()
 
         // Инициализация генератора
         generator_ = new CoordinatesGenerator(params, graph_.generateInterval_);
-        connect(generator_, &CoordinatesGenerator::coordinatesReady, this, &MainWindow::handleResult);
+        connect(generator_, &CoordinatesGenerator::coordinatesReady, [&](int x, int y){addGraphData(x, y);});
         connect(this, &MainWindow::startGeneration, generator_, &CoordinatesGenerator::start);
         connect(ui->buttonStop, &QPushButton::clicked, generator_, &CoordinatesGenerator::stop);
         connect(ui->buttonPause, &QPushButton::clicked, generator_, &CoordinatesGenerator::pause);
-        connect(generator_, &CoordinatesGenerator::stopped, this, &MainWindow::onGeneratorStopped);
+
+        connect(generator_, &CoordinatesGenerator::stopped, [&](){
+            thread_.quit();
+            thread_.wait();
+            generator_ = nullptr;
+            generator_ = nullptr;
+            ui->customPlot->graph(0)->clear();
+        });
 
         // Запуск потока
         generator_->moveToThread(&thread_);
         connect(&thread_, &QThread::finished, generator_, &QObject::deleteLater);
         thread_.start();
     }
-}
-
-
-void MainWindow::handleResult(int x, int y)
-{
-    addGraphData(x, y);
 }
 
 
@@ -114,22 +105,18 @@ void MainWindow::repaintGraph(const Config &config)
 }
 
 
-void MainWindow::onGeneratorStopped()
-{
-    thread_.quit();
-    thread_.wait();
-    generator_ = nullptr;
-    generator_ = nullptr;
-    ui->customPlot->graph(0)->clear();
-}
-
-
 void MainWindow::setButtonsActions()
 {
     ui->buttonPause->hide();
     ui->buttonStop->hide();
 
-    connect(ui->buttonStart, &QPushButton::clicked, this, &MainWindow::onButtonStart);
+    connect(ui->actionSetting, &QAction::triggered, this, &MainWindow::openSettingDialog);
+    connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
+
+    connect(ui->buttonStart, &QPushButton::clicked, this, [&](){
+        createGenerator();
+        emit startGeneration();
+    });
     connect(ui->buttonStart, &QPushButton::clicked, ui->buttonStop, &QPushButton::show);
     connect(ui->buttonStart, &QPushButton::clicked, ui->buttonPause, &QPushButton::show);
     connect(ui->buttonStart, &QPushButton::clicked, ui->buttonStart, &QPushButton::hide);
@@ -155,33 +142,27 @@ void MainWindow::setButtonsActions()
         load();
         repaintGraph(graph_);
     });
+}
 
-    connect(ui->actionSetting, &QAction::triggered, [&](){
-        dialog_ = new ConfigDialog(graph_, this);
-//        ConfigDialog dialog(graph_, this);
-//        connect(&dialog, &ConfigDialog::accepted, this, [&](Config conf){
-//            repaintGraph(conf);
-//            dialog.close();
-//            dialog.deleteLater();
-//        });
-//        connect(&dialog, &ConfigDialog::rejected, [&](){
-//            dialog.close();
-//            dialog.deleteLater();
-//        });
-//        dialog.show();
-        connect(dialog_, &ConfigDialog::accepted, this, [&](Config conf){
-            repaintGraph(conf);
-            dialog_->close();
-            dialog_->deleteLater();
-            dialog_ = nullptr;
-        });
-        connect(dialog_, &ConfigDialog::rejected, [&](){
-            dialog_->close();
-            dialog_->deleteLater();
-            dialog_ = nullptr;
-        });
-        dialog_->show();
+
+void MainWindow::openSettingDialog()
+{
+    dialog_ = new ConfigDialog(graph_, this);
+
+    connect(dialog_, &ConfigDialog::accepted, this, [&](Config conf){
+        repaintGraph(conf);
+        dialog_->close();
+        dialog_->deleteLater();
+        dialog_ = nullptr;
     });
+
+    connect(dialog_, &ConfigDialog::rejected, [&](){
+        dialog_->close();
+        dialog_->deleteLater();
+        dialog_ = nullptr;
+    });
+
+    dialog_->show();
 }
 
 

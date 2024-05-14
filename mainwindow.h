@@ -49,11 +49,7 @@ private:
     void setButtonsActions();
     void save();                                // Сохранение параметров графика
     void load();                                // Загрузка параметров
-
-private slots:
-    void handleResult(int x, int y);                     // Прием координат
-    void onButtonStart();
-    void onGeneratorStopped();
+    void openSettingDialog();
 
 signals:
     void startGeneration();
